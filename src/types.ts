@@ -11,6 +11,10 @@ export interface Reply {
   id: string
   text: string
   character: Character
+  liked: boolean
+  blocked: boolean
+  chainReplies: Reply[]
+  chainLoading: boolean
 }
 
 export interface AppState {

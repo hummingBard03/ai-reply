@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { AppState } from './types'
+import { AppState, Reply } from './types'
 import { pickRandomCharacters } from './characters'
 import { generateReplies } from './api'
 import TweetInput from './components/TweetInput'
@@ -12,6 +12,21 @@ const initialState: AppState = {
   replies: [],
   isLoading: false,
   error: null,
+}
+
+// IDでネストを問わずReplyを更新するヘルパー
+function updateReplyById(
+  replies: Reply[],
+  id: string,
+  updater: (r: Reply) => Reply,
+): Reply[] {
+  return replies.map((r) => {
+    if (r.id === id) return updater(r)
+    if (r.chainReplies.length > 0) {
+      return { ...r, chainReplies: updateReplyById(r.chainReplies, id, updater) }
+    }
+    return r
+  })
 }
 
 export default function App() {
@@ -39,6 +54,44 @@ export default function App() {
     await fetchReplies(state.postedTweet)
   }
 
+  function handleLike(id: string) {
+    setState((s) => ({
+      ...s,
+      replies: updateReplyById(s.replies, id, (r) => ({ ...r, liked: !r.liked })),
+    }))
+  }
+
+  function handleBlock(id: string) {
+    setState((s) => ({
+      ...s,
+      replies: updateReplyById(s.replies, id, (r) => ({ ...r, blocked: !r.blocked })),
+    }))
+  }
+
+  async function handleChain(id: string, text: string) {
+    setState((s) => ({
+      ...s,
+      replies: updateReplyById(s.replies, id, (r) => ({ ...r, chainLoading: true })),
+    }))
+    const chainCharacters = pickRandomCharacters(3)
+    try {
+      const chainReplies = await generateReplies(text, chainCharacters)
+      setState((s) => ({
+        ...s,
+        replies: updateReplyById(s.replies, id, (r) => ({
+          ...r,
+          chainLoading: false,
+          chainReplies: [...r.chainReplies, ...chainReplies],
+        })),
+      }))
+    } catch {
+      setState((s) => ({
+        ...s,
+        replies: updateReplyById(s.replies, id, (r) => ({ ...r, chainLoading: false })),
+      }))
+    }
+  }
+
   return (
     <div className="min-h-screen bg-black text-white">
       <div className="max-w-[600px] mx-auto border-x border-gray-800 min-h-screen">
@@ -63,7 +116,22 @@ export default function App() {
           />
         )}
 
-        <ReplyList replies={state.replies} isLoading={state.isLoading} />
+        {state.isLoading && state.replies.length === 0 && (
+          <div className="p-8 text-center">
+            <div className="inline-flex items-center gap-3 text-gray-400">
+              <span className="text-2xl animate-spin">⚙️</span>
+              <span>クソリプ召喚中…</span>
+            </div>
+          </div>
+        )}
+
+        <ReplyList
+          replies={state.replies}
+          isLoading={state.isLoading}
+          onLike={handleLike}
+          onBlock={handleBlock}
+          onChain={handleChain}
+        />
 
         {!state.postedTweet && !state.isLoading && (
           <div className="p-8 text-center text-gray-600">

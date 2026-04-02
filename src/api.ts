@@ -6,6 +6,10 @@ const client = new Anthropic({
   dangerouslyAllowBrowser: true,
 })
 
+function makeReply(id: string, text: string, character: Character): Reply {
+  return { id, text, character, liked: false, blocked: false, chainReplies: [], chainLoading: false }
+}
+
 export async function generateReplies(
   tweet: string,
   characters: Character[],
@@ -53,11 +57,7 @@ ${characterList}
     const text = blocks[i + 1].trim()
     const character = idToCharacter.get(id)
     if (character && text) {
-      replies.push({
-        id: `reply-${id}-${Date.now()}`,
-        text,
-        character,
-      })
+      replies.push(makeReply(`reply-${id}-${Date.now()}-${i}`, text, character))
     }
   }
 
