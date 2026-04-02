@@ -8,17 +8,34 @@ const client = new Anthropic({
 
 export async function generateReplies(
   tweet: string,
-  character: Character,
+  characters: Character[],
 ): Promise<Reply[]> {
-  const userMessage = `以下の投稿に対して、あなたのキャラクターでクソリプを10件生成してください。
-各返信は必ず番号付きリスト（1. 〜 10.）の形式で出力し、番号と返信テキストのみ記載してください。余計な説明は不要です。
+  const characterList = characters
+    .map((c, i) => `${i + 1}. 【${c.id}】${c.name}（${c.description}）\nキャラクター設定: ${c.systemPrompt}`)
+    .join('\n\n')
 
-投稿：「${tweet}」`
+  const userMessage = `以下の${characters.length}人のキャラクターそれぞれとして、投稿に対するクソリプを1件ずつ返してください。
+
+## 投稿
+「${tweet}」
+
+## キャラクター一覧
+${characterList}
+
+## 出力形式
+各キャラクターの返信を以下の形式で出力してください。他の文章は一切不要です。
+
+[キャラクターID]
+返信テキスト
+
+[キャラクターID]
+返信テキスト
+
+...（全員分）`
 
   const message = await client.messages.create({
     model: 'claude-sonnet-4-6',
-    max_tokens: 1024,
-    system: character.systemPrompt,
+    max_tokens: 2048,
     messages: [{ role: 'user', content: userMessage }],
   })
 
@@ -27,19 +44,21 @@ export async function generateReplies(
     throw new Error('Unexpected response type')
   }
 
-  const lines = content.text
-    .split('\n')
-    .map((line) => line.trim())
-    .filter((line) => /^\d+[\.\)]\s/.test(line))
+  const idToCharacter = new Map(characters.map((c) => [c.id, c]))
+  const replies: Reply[] = []
 
-  const replies: Reply[] = lines.slice(0, 10).map((line, i) => ({
-    id: `reply-${Date.now()}-${i}`,
-    text: line.replace(/^\d+[\.\)]\s*/, '').trim(),
-    character,
-  }))
-
-  if (replies.length === 0) {
-    throw new Error('返信の解析に失敗しました')
+  const blocks = content.text.split(/\[([^\]]+)\]\n/)
+  for (let i = 1; i < blocks.length - 1; i += 2) {
+    const id = blocks[i].trim()
+    const text = blocks[i + 1].trim()
+    const character = idToCharacter.get(id)
+    if (character && text) {
+      replies.push({
+        id: `reply-${id}-${Date.now()}`,
+        text,
+        character,
+      })
+    }
   }
 
   return replies
