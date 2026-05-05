@@ -1,5 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk'
-import { Character, Reply } from './types'
+import { Character, ConvoMessage, Reply } from './types'
 
 const client = new Anthropic({
   apiKey: import.meta.env.VITE_ANTHROPIC_API_KEY,
@@ -7,7 +7,36 @@ const client = new Anthropic({
 })
 
 function makeReply(id: string, text: string, character: Character): Reply {
-  return { id, text, character, liked: false, blocked: false, chainReplies: [], chainLoading: false }
+  return { id, text, character, liked: false, blocked: false, chainReplies: [], chainLoading: false, convo: [], convoLoading: false }
+}
+
+export async function generateCharacterReply(
+  userText: string,
+  character: Character,
+  history: ConvoMessage[],
+): Promise<string> {
+  const historyLines = history
+    .map((m) =>
+      m.role === 'user'
+        ? `ユーザー:「${m.text}」`
+        : `${character.name}（あなた）:「${m.text}」`,
+    )
+    .join('\n')
+
+  const prompt = historyLines
+    ? `これまでの会話の流れ:\n${historyLines}\n\nユーザーの最新メッセージ:「${userText}」\n\n上記を踏まえてクソリプを1〜3文で返してください。`
+    : `ユーザーのメッセージ:「${userText}」\n\nクソリプを1〜3文で返してください。`
+
+  const message = await client.messages.create({
+    model: 'claude-sonnet-4-6',
+    max_tokens: 300,
+    system: character.systemPrompt,
+    messages: [{ role: 'user', content: prompt }],
+  })
+
+  const content = message.content[0]
+  if (content.type !== 'text') throw new Error('Unexpected response type')
+  return content.text.trim()
 }
 
 export async function generateReplies(

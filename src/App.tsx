@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import { AppState, Reply } from './types'
+import { AppState, Character, ConvoMessage, Reply } from './types'
 import { pickRandomCharacters } from './characters'
-import { generateReplies } from './api'
+import { generateCharacterReply, generateReplies } from './api'
 import TweetInput from './components/TweetInput'
 import TweetCard from './components/TweetCard'
 import ReplyList from './components/ReplyList'
@@ -14,7 +14,6 @@ const initialState: AppState = {
   error: null,
 }
 
-// IDでネストを問わずReplyを更新するヘルパー
 function updateReplyById(
   replies: Reply[],
   id: string,
@@ -92,6 +91,40 @@ export default function App() {
     }
   }
 
+  async function handleConvoSubmit(
+    id: string,
+    userText: string,
+    character: Character,
+    currentConvo: ConvoMessage[],
+  ) {
+    const withUserMsg: ConvoMessage[] = [...currentConvo, { role: 'user', text: userText }]
+    setState((s) => ({
+      ...s,
+      replies: updateReplyById(s.replies, id, (r) => ({
+        ...r,
+        convo: withUserMsg,
+        convoLoading: true,
+      })),
+    }))
+    try {
+      const responseText = await generateCharacterReply(userText, character, currentConvo)
+      const withCharMsg: ConvoMessage[] = [...withUserMsg, { role: 'character', text: responseText }]
+      setState((s) => ({
+        ...s,
+        replies: updateReplyById(s.replies, id, (r) => ({
+          ...r,
+          convo: withCharMsg,
+          convoLoading: false,
+        })),
+      }))
+    } catch {
+      setState((s) => ({
+        ...s,
+        replies: updateReplyById(s.replies, id, (r) => ({ ...r, convoLoading: false })),
+      }))
+    }
+  }
+
   return (
     <div className="min-h-screen bg-black text-white">
       <div className="max-w-[600px] mx-auto border-x border-gray-800 min-h-screen">
@@ -131,6 +164,7 @@ export default function App() {
           onLike={handleLike}
           onBlock={handleBlock}
           onChain={handleChain}
+          onConvoSubmit={handleConvoSubmit}
         />
 
         {!state.postedTweet && !state.isLoading && (

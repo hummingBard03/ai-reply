@@ -1,4 +1,4 @@
-import { Reply } from '../types'
+import { Character, ConvoMessage, Reply } from '../types'
 import ReplyItem from './ReplyItem'
 
 interface Props {
@@ -7,9 +7,10 @@ interface Props {
   onLike: (id: string) => void
   onBlock: (id: string) => void
   onChain: (id: string, text: string) => void
+  onConvoSubmit: (id: string, userText: string, character: Character, currentConvo: ConvoMessage[]) => void
 }
 
-export default function ReplyList({ replies, isLoading, onLike, onBlock, onChain }: Props) {
+export default function ReplyList({ replies, isLoading, onLike, onBlock, onChain, onConvoSubmit }: Props) {
   if (replies.length === 0) return null
 
   return (
@@ -22,6 +23,7 @@ export default function ReplyList({ replies, isLoading, onLike, onBlock, onChain
           onLike={onLike}
           onBlock={onBlock}
           onChain={onChain}
+          onConvoSubmit={onConvoSubmit}
         />
       ))}
       {isLoading && (

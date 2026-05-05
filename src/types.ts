@@ -7,6 +7,11 @@ export interface Character {
   systemPrompt: string
 }
 
+export interface ConvoMessage {
+  role: 'user' | 'character'
+  text: string
+}
+
 export interface Reply {
   id: string
   text: string
@@ -15,6 +20,8 @@ export interface Reply {
   blocked: boolean
   chainReplies: Reply[]
   chainLoading: boolean
+  convo: ConvoMessage[]
+  convoLoading: boolean
 }
 
 export interface AppState {
