@@ -45,7 +45,7 @@ export async function generateReplies(
   image?: ImageAttachment,
 ): Promise<Reply[]> {
   const characterList = characters
-    .map((c, i) => `${i + 1}. 【${c.id}】${c.name}（${c.description}）\nキャラクター設定: ${c.systemPrompt}`)
+    .map((c, i) => `${i + 1}. 【${c.id}】${c.name}\n${c.systemPrompt}`)
     .join('\n\n')
 
   const textPrompt = `以下の${characters.length}人のキャラクターそれぞれとして、投稿に対するクソリプを1件ずつ返してください。
@@ -55,6 +55,9 @@ export async function generateReplies(
 
 ## キャラクター一覧
 ${characterList}
+
+## 共通ルール
+各返信は1〜3文の短文で、ズレ感と笑いを含めてください。攻撃的・差別的にはならないでください。日本語で返してください。
 
 ## 出力形式
 各キャラクターの返信を以下の形式で出力してください。他の文章は一切不要です。
