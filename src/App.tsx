@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { AppState, Character, ConvoMessage, Reply } from './types'
+import { AppState, Character, ConvoMessage, ImageAttachment, Reply } from './types'
 import { pickRandomCharacters } from './characters'
 import { generateCharacterReply, generateReplies } from './api'
 import TweetInput from './components/TweetInput'
@@ -9,6 +9,7 @@ import ReplyList from './components/ReplyList'
 const initialState: AppState = {
   tweet: '',
   postedTweet: null,
+  postedImage: null,
   replies: [],
   isLoading: false,
   error: null,
@@ -31,11 +32,11 @@ function updateReplyById(
 export default function App() {
   const [state, setState] = useState<AppState>(initialState)
 
-  async function fetchReplies(tweet: string) {
+  async function fetchReplies(tweet: string, image?: ImageAttachment) {
     const selectedCharacters = pickRandomCharacters(10)
     setState((s) => ({ ...s, isLoading: true, error: null, replies: [] }))
     try {
-      const replies = await generateReplies(tweet, selectedCharacters)
+      const replies = await generateReplies(tweet, selectedCharacters, image)
       setState((s) => ({ ...s, replies, isLoading: false }))
     } catch (err) {
       const message = err instanceof Error ? err.message : '不明なエラー'
@@ -43,14 +44,14 @@ export default function App() {
     }
   }
 
-  async function handlePost(tweet: string) {
-    setState((s) => ({ ...s, postedTweet: tweet }))
-    await fetchReplies(tweet)
+  async function handlePost(tweet: string, image?: ImageAttachment) {
+    setState((s) => ({ ...s, postedTweet: tweet, postedImage: image ?? null }))
+    await fetchReplies(tweet, image)
   }
 
   async function handleRegenerate() {
-    if (!state.postedTweet) return
-    await fetchReplies(state.postedTweet)
+    if (!state.postedTweet && !state.postedImage) return
+    await fetchReplies(state.postedTweet ?? '', state.postedImage ?? undefined)
   }
 
   function handleLike(id: string) {
@@ -141,9 +142,10 @@ export default function App() {
           </div>
         )}
 
-        {state.postedTweet && (
+        {(state.postedTweet || state.postedImage) && (
           <TweetCard
-            text={state.postedTweet}
+            text={state.postedTweet ?? ''}
+            image={state.postedImage ?? undefined}
             onRegenerate={handleRegenerate}
             isLoading={state.isLoading}
           />

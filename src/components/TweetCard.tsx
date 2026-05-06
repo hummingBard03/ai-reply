@@ -1,10 +1,13 @@
+import { ImageAttachment } from '../types'
+
 interface Props {
   text: string
+  image?: ImageAttachment
   onRegenerate: () => void
   isLoading: boolean
 }
 
-export default function TweetCard({ text, onRegenerate, isLoading }: Props) {
+export default function TweetCard({ text, image, onRegenerate, isLoading }: Props) {
   return (
     <div className="border-b border-gray-800 p-4">
       <div className="flex gap-3">
@@ -16,7 +19,18 @@ export default function TweetCard({ text, onRegenerate, isLoading }: Props) {
             <span className="text-white font-bold text-sm">あなた</span>
             <span className="text-gray-500 text-sm">@you</span>
           </div>
-          <p className="text-white text-base whitespace-pre-wrap break-words">{text}</p>
+          {text && (
+            <p className="text-white text-base whitespace-pre-wrap break-words">{text}</p>
+          )}
+          {image && (
+            <div className="mt-2">
+              <img
+                src={`data:${image.mediaType};base64,${image.base64}`}
+                alt="添付画像"
+                className="max-h-80 max-w-full rounded-xl object-cover border border-gray-700"
+              />
+            </div>
+          )}
           <div className="mt-3">
             <button
               onClick={onRegenerate}

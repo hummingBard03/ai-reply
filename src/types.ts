@@ -1,3 +1,8 @@
+export interface ImageAttachment {
+  base64: string
+  mediaType: 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp'
+}
+
 export interface Character {
   id: string
   name: string
@@ -27,6 +32,7 @@ export interface Reply {
 export interface AppState {
   tweet: string
   postedTweet: string | null
+  postedImage: ImageAttachment | null
   replies: Reply[]
   isLoading: boolean
   error: string | null

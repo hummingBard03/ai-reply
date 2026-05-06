@@ -1,5 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk'
-import { Character, ConvoMessage, Reply } from './types'
+import { Character, ConvoMessage, ImageAttachment, Reply } from './types'
 
 const client = new Anthropic({
   apiKey: import.meta.env.VITE_ANTHROPIC_API_KEY,
@@ -42,15 +42,16 @@ export async function generateCharacterReply(
 export async function generateReplies(
   tweet: string,
   characters: Character[],
+  image?: ImageAttachment,
 ): Promise<Reply[]> {
   const characterList = characters
     .map((c, i) => `${i + 1}. 【${c.id}】${c.name}（${c.description}）\nキャラクター設定: ${c.systemPrompt}`)
     .join('\n\n')
 
-  const userMessage = `以下の${characters.length}人のキャラクターそれぞれとして、投稿に対するクソリプを1件ずつ返してください。
+  const textPrompt = `以下の${characters.length}人のキャラクターそれぞれとして、投稿に対するクソリプを1件ずつ返してください。
 
 ## 投稿
-「${tweet}」
+「${tweet || '（画像のみ）'}」
 
 ## キャラクター一覧
 ${characterList}
@@ -66,10 +67,17 @@ ${characterList}
 
 ...（全員分）`
 
+  const userContent: Anthropic.MessageParam['content'] = image
+    ? [
+        { type: 'image', source: { type: 'base64', media_type: image.mediaType, data: image.base64 } },
+        { type: 'text', text: textPrompt },
+      ]
+    : textPrompt
+
   const message = await client.messages.create({
     model: 'claude-sonnet-4-6',
     max_tokens: 2048,
-    messages: [{ role: 'user', content: userMessage }],
+    messages: [{ role: 'user', content: userContent }],
   })
 
   const content = message.content[0]
