@@ -14,6 +14,7 @@ export async function generateCharacterReply(
   userText: string,
   character: Character,
   history: ConvoMessage[],
+  gentleMode?: boolean,
 ): Promise<string> {
   const historyLines = history
     .map((m) =>
@@ -23,9 +24,13 @@ export async function generateCharacterReply(
     )
     .join('\n')
 
+  const replyStyle = gentleMode
+    ? '優しく温かいリプライを1〜3文で返してください。'
+    : 'クソリプを1〜3文で返してください。'
+
   const prompt = historyLines
-    ? `これまでの会話の流れ:\n${historyLines}\n\nユーザーの最新メッセージ:「${userText}」\n\n上記を踏まえてクソリプを1〜3文で返してください。`
-    : `ユーザーのメッセージ:「${userText}」\n\nクソリプを1〜3文で返してください。`
+    ? `これまでの会話の流れ:\n${historyLines}\n\nユーザーの最新メッセージ:「${userText}」\n\n上記を踏まえて${replyStyle}`
+    : `ユーザーのメッセージ:「${userText}」\n\n${replyStyle}`
 
   const message = await client.messages.create({
     model: 'claude-sonnet-4-6',
@@ -43,12 +48,18 @@ export async function generateReplies(
   tweet: string,
   characters: Character[],
   image?: ImageAttachment,
+  gentleMode?: boolean,
 ): Promise<Reply[]> {
   const characterList = characters
     .map((c, i) => `${i + 1}. 【${c.id}】${c.name}\n${c.systemPrompt}`)
     .join('\n\n')
 
-  const textPrompt = `以下の${characters.length}人のキャラクターそれぞれとして、投稿に対するクソリプを1件ずつ返してください。
+  const replyType = gentleMode ? '優しいリプライ' : 'クソリプ'
+  const replyStyle = gentleMode
+    ? '各返信は1〜3文の短文で、温かく・優しく・励ましたり褒めたりする内容にしてください。日本語で返してください。'
+    : '各返信は1〜3文の短文で、ズレ感と笑いを含めてください。攻撃的・差別的にはならないでください。日本語で返してください。'
+
+  const textPrompt = `以下の${characters.length}人のキャラクターそれぞれとして、投稿に対する${replyType}を1件ずつ返してください。
 
 ## 投稿
 「${tweet || '（画像のみ）'}」
@@ -57,7 +68,7 @@ export async function generateReplies(
 ${characterList}
 
 ## 共通ルール
-各返信は1〜3文の短文で、ズレ感と笑いを含めてください。攻撃的・差別的にはならないでください。日本語で返してください。
+${replyStyle}
 
 ## 出力形式
 各キャラクターの返信を以下の形式で出力してください。他の文章は一切不要です。

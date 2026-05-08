@@ -13,6 +13,7 @@ const initialState: AppState = {
   replies: [],
   isLoading: false,
   error: null,
+  gentleMode: false,
 }
 
 function updateReplyById(
@@ -32,11 +33,11 @@ function updateReplyById(
 export default function App() {
   const [state, setState] = useState<AppState>(initialState)
 
-  async function fetchReplies(tweet: string, image?: ImageAttachment) {
+  async function fetchReplies(tweet: string, image?: ImageAttachment, gentleMode?: boolean) {
     const selectedCharacters = pickRandomCharacters(10)
     setState((s) => ({ ...s, isLoading: true, error: null, replies: [] }))
     try {
-      const replies = await generateReplies(tweet, selectedCharacters, image)
+      const replies = await generateReplies(tweet, selectedCharacters, image, gentleMode)
       setState((s) => ({ ...s, replies, isLoading: false }))
     } catch (err) {
       const message = err instanceof Error ? err.message : '不明なエラー'
@@ -46,12 +47,16 @@ export default function App() {
 
   async function handlePost(tweet: string, image?: ImageAttachment) {
     setState((s) => ({ ...s, postedTweet: tweet, postedImage: image ?? null }))
-    await fetchReplies(tweet, image)
+    await fetchReplies(tweet, image, state.gentleMode)
   }
 
   async function handleRegenerate() {
     if (!state.postedTweet && !state.postedImage) return
-    await fetchReplies(state.postedTweet ?? '', state.postedImage ?? undefined)
+    await fetchReplies(state.postedTweet ?? '', state.postedImage ?? undefined, state.gentleMode)
+  }
+
+  function handleToggleGentleMode() {
+    setState((s) => ({ ...s, gentleMode: !s.gentleMode }))
   }
 
   function handleLike(id: string) {
@@ -75,7 +80,7 @@ export default function App() {
     }))
     const chainCharacters = pickRandomCharacters(3)
     try {
-      const chainReplies = await generateReplies(text, chainCharacters)
+      const chainReplies = await generateReplies(text, chainCharacters, undefined, state.gentleMode)
       setState((s) => ({
         ...s,
         replies: updateReplyById(s.replies, id, (r) => ({
@@ -108,7 +113,7 @@ export default function App() {
       })),
     }))
     try {
-      const responseText = await generateCharacterReply(userText, character, currentConvo)
+      const responseText = await generateCharacterReply(userText, character, currentConvo, state.gentleMode)
       const withCharMsg: ConvoMessage[] = [...withUserMsg, { role: 'character', text: responseText }]
       setState((s) => ({
         ...s,
@@ -130,8 +135,28 @@ export default function App() {
     <div className="min-h-screen bg-black text-white">
       <div className="max-w-[600px] mx-auto border-x border-gray-800 min-h-screen">
         <header className="sticky top-0 z-10 backdrop-blur-md bg-black/80 border-b border-gray-800 px-4 py-3">
-          <h1 className="text-lg font-bold text-white">クソリプほいほい 💬</h1>
-          <p className="text-xs text-gray-500 mt-0.5">投稿すると10キャラが1件ずつクソリプを返してくれるよ</p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-lg font-bold text-white">
+                {state.gentleMode ? 'やさリプほいほい 🌸' : 'クソリプほいほい 💬'}
+              </h1>
+              <p className="text-xs text-gray-500 mt-0.5">
+                {state.gentleMode
+                  ? '投稿すると10キャラが優しいリプライを返してくれるよ'
+                  : '投稿すると10キャラが1件ずつクソリプを返してくれるよ'}
+              </p>
+            </div>
+            <button
+              onClick={handleToggleGentleMode}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border transition-all duration-200 ${
+                state.gentleMode
+                  ? 'bg-pink-500/20 border-pink-500 text-pink-400 hover:bg-pink-500/30'
+                  : 'bg-gray-800 border-gray-600 text-gray-400 hover:bg-gray-700'
+              }`}
+            >
+              {state.gentleMode ? '🌸 優しいモード' : '😈 クソリプモード'}
+            </button>
+          </div>
         </header>
 
         <TweetInput onPost={handlePost} isLoading={state.isLoading} />
@@ -148,14 +173,15 @@ export default function App() {
             image={state.postedImage ?? undefined}
             onRegenerate={handleRegenerate}
             isLoading={state.isLoading}
+            gentleMode={state.gentleMode}
           />
         )}
 
         {state.isLoading && state.replies.length === 0 && (
           <div className="p-8 text-center">
             <div className="inline-flex items-center gap-3 text-gray-400">
-              <span className="text-2xl animate-spin">⚙️</span>
-              <span>クソリプ召喚中…</span>
+              <span className="text-2xl animate-spin">{state.gentleMode ? '🌸' : '⚙️'}</span>
+              <span>{state.gentleMode ? '優しいリプライ生成中…' : 'クソリプ召喚中…'}</span>
             </div>
           </div>
         )}
@@ -171,8 +197,12 @@ export default function App() {
 
         {!state.postedTweet && !state.isLoading && (
           <div className="p-8 text-center text-gray-600">
-            <p className="text-4xl mb-3">💬</p>
-            <p className="text-sm">何かつぶやくと、10キャラが1件ずつクソリプを返してくれます</p>
+            <p className="text-4xl mb-3">{state.gentleMode ? '🌸' : '💬'}</p>
+            <p className="text-sm">
+              {state.gentleMode
+                ? '何かつぶやくと、10キャラが優しいリプライを返してくれます'
+                : '何かつぶやくと、10キャラが1件ずつクソリプを返してくれます'}
+            </p>
           </div>
         )}
       </div>
