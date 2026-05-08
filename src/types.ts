@@ -36,4 +36,5 @@ export interface AppState {
   replies: Reply[]
   isLoading: boolean
   error: string | null
+  gentleMode: boolean
 }

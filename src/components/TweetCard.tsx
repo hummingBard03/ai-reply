@@ -5,9 +5,10 @@ interface Props {
   image?: ImageAttachment
   onRegenerate: () => void
   isLoading: boolean
+  gentleMode?: boolean
 }
 
-export default function TweetCard({ text, image, onRegenerate, isLoading }: Props) {
+export default function TweetCard({ text, image, onRegenerate, isLoading, gentleMode }: Props) {
   return (
     <div className="border-b border-gray-800 p-4">
       <div className="flex gap-3">
@@ -39,7 +40,7 @@ export default function TweetCard({ text, image, onRegenerate, isLoading }: Prop
                 px-4 py-1.5 rounded-full transition-colors duration-150
                 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isLoading ? '生成中…' : '🔄 もう一回クソリプをもらう'}
+              {isLoading ? '生成中…' : gentleMode ? '🔄 もう一回優しいリプライをもらう' : '🔄 もう一回クソリプをもらう'}
             </button>
           </div>
         </div>
